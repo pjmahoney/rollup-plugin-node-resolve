@@ -1,63 +1,70 @@
-import { dirname, resolve, normalize, sep } from 'path';
+import { dirname, normalize, resolve, sep } from 'path';
 import builtins from 'builtin-modules';
 import _nodeResolve from 'resolve';
 import browserResolve from 'browser-resolve';
 import isModule from 'is-module';
 import fs from 'fs';
 
-const COMMONJS_BROWSER_EMPTY = _nodeResolve.sync( 'browser-resolve/empty.js', __dirname );
-const ES6_BROWSER_EMPTY = resolve( __dirname, '../src/empty.js' );
-const CONSOLE_WARN = ( ...args ) => console.warn( ...args ); // eslint-disable-line no-console
+var COMMONJS_BROWSER_EMPTY = _nodeResolve.sync( 'browser-resolve/empty.js', __dirname );
+var ES6_BROWSER_EMPTY = resolve( __dirname, '../src/empty.js' );
+var CONSOLE_WARN = function () {
+	var args = [], len = arguments.length;
+	while ( len-- ) args[ len ] = arguments[ len ];
 
-export default function nodeResolve ( options = {} ) {
-	const useModule = options.module !== false;
-	const useMain = options.main !== false;
-	const useJsnext = options.jsnext === true;
-	const isPreferBuiltinsSet = options.preferBuiltins === true || options.preferBuiltins === false;
-	const preferBuiltins = isPreferBuiltinsSet ? options.preferBuiltins : true;
-	const customResolveOptions = options.customResolveOptions || {};
-	const jail = options.jail;
-	const baseDir = options.baseDir;
+	return console.warn.apply( console, args );
+}; // eslint-disable-line no-console
 
-	const onwarn = options.onwarn || CONSOLE_WARN;
-	const resolveId = options.browser ? browserResolve : _nodeResolve;
+function nodeResolve ( options ) {
+	if ( options === void 0 ) options = {};
+
+	var useModule = options.module !== false;
+	var useMain = options.main !== false;
+	var useJsnext = options.jsnext === true;
+	var isPreferBuiltinsSet = options.preferBuiltins === true || options.preferBuiltins === false;
+	var preferBuiltins = isPreferBuiltinsSet ? options.preferBuiltins : true;
+	var customResolveOptions = options.customResolveOptions || {};
+	var jail = options.jail;
+	var baseDir = options.baseDir;
+
+	var onwarn = options.onwarn || CONSOLE_WARN;
+	var resolveId = options.browser ? browserResolve : _nodeResolve;
 
 	if ( options.skip ) {
 		throw new Error( 'options.skip is no longer supported — you should use the main Rollup `external` option instead' );
 	}
 
 	if ( !useModule && !useMain && !useJsnext ) {
-		throw new Error( `At least one of options.module, options.main or options.jsnext must be true` );
+		throw new Error( "At least one of options.module, options.main or options.jsnext must be true" );
 	}
 
 	return {
 		name: 'node-resolve',
 
-		resolveId ( importee, importer ) {
-			if ( /\0/.test( importee ) ) return null; // ignore IDs with null character, these belong to other plugins
+		resolveId: function resolveId$1 ( importee, importer ) {
+			if ( /\0/.test( importee ) ) { return null; } // ignore IDs with null character, these belong to other plugins
 
 			// disregard entry module
-			if ( !importer ) return null;
+			if ( !importer ) { return null; }
 
-			const parts = importee.split( /[\/\\]/ );
-			let id = parts.shift();
+			var parts = importee.split( /[\/\\]/ );
+			var id = parts.shift();
 
 			if ( id[0] === '@' && parts.length ) {
 				// scoped packages
-				id += `/${parts.shift()}`;
+				id += "/" + (parts.shift());
 			} else if ( id[0] === '.' ) {
 				// an import relative to the parent dir of the importer
 				id = resolve( importer, '..', importee );
 			}
 
-			return new Promise( ( fulfil, reject ) => {
-				let disregardResult = false;
+			return new Promise( function ( fulfil, reject ) {
+				var disregardResult = false;
 
 				resolveId(
 					importee,
 					Object.assign({
 						basedir: baseDir ? baseDir : dirname( importer ),
-						packageFilter ( pkg ) {
+						packageFilter: function packageFilter ( pkg ) {
 							if ( useModule && pkg[ 'module' ] ) {
 								pkg[ 'main' ] = pkg[ 'module' ];
 							} else if ( useJsnext && pkg[ 'jsnext:main' ] ) {
@@ -69,7 +76,7 @@ export default function nodeResolve ( options = {} ) {
 						},
 						extensions: options.extensions
 					}, customResolveOptions ),
-					( err, resolved ) => {
+					function ( err, resolved ) {
 						if ( !disregardResult && !err ) {
 							if ( resolved && fs.existsSync( resolved ) ) {
 								resolved = fs.realpathSync( resolved );
@@ -82,9 +89,9 @@ export default function nodeResolve ( options = {} ) {
 							} else if ( ~builtins.indexOf( importee ) && preferBuiltins ) {
 								if ( !isPreferBuiltinsSet ) {
 									onwarn(
-										`preferring built-in module '${importee}' over local alternative ` +
-										`at '${resolved}', pass 'preferBuiltins: false' to disable this ` +
-										`behavior or 'preferBuiltins: true' to disable this warning`
+										"preferring built-in module '" + importee + "' over local alternative " +
+										"at '" + resolved + "', pass 'preferBuiltins: false' to disable this " +
+										"behavior or 'preferBuiltins: true' to disable this warning"
 									);
 								}
 								fulfil( null );
@@ -94,11 +101,11 @@ export default function nodeResolve ( options = {} ) {
 						}
 
 						if ( resolved && options.modulesOnly ) {
-							fs.readFile( resolved, 'utf-8', ( err, code ) => {
+							fs.readFile( resolved, 'utf-8', function ( err, code ) {
 								if ( err ) {
 									reject( err );
 								} else {
-									const valid = isModule( code );
+									var valid = isModule( code );
 									fulfil( valid ? resolved : null );
 								}
 							});
@@ -111,3 +118,5 @@ export default function nodeResolve ( options = {} ) {
 		}
 	};
 }
+
+export default nodeResolve;
