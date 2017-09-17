@@ -28,7 +28,7 @@ function nodeResolve ( options ) {
 	var preferBuiltins = isPreferBuiltinsSet ? options.preferBuiltins : true;
 	var customResolveOptions = options.customResolveOptions || {};
 	var jail = options.jail;
-	var baseDir = options.baseDir;
+	var basedir = options.basedir;
 
 	var onwarn = options.onwarn || CONSOLE_WARN;
 	var resolveId = options.browser ? browserResolve : _nodeResolve;
@@ -67,7 +67,7 @@ function nodeResolve ( options ) {
 				resolveId(
 					importee,
 					Object.assign({
-						basedir: baseDir ? baseDir : path.dirname( importer ),
+						basedir: basedir ? basedir : path.dirname( importer ),
 						packageFilter: function packageFilter ( pkg ) {
 							if ( useModule && pkg[ 'module' ] ) {
 								pkg[ 'main' ] = pkg[ 'module' ];
